@@ -68,11 +68,13 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26c";
+const VERSION = "v5.5.26e";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
 const DISH_PENALTY = 3;
+const PARENT_DISH_CHORE_ID = -201;
+const PARENT_DISH_UNDO_MS = 60 * 1000;
 const DEFAULT_PIN = "5422";
 const KID_NAMES = ["Morgan", "Marilyn", "James", "Calvin", "Anastasia", "Evie"];
 
@@ -380,19 +382,51 @@ export default function App() {
     () =>
       kids.map((kid) => {
         const completed = completedPoints(kid);
-        const required = requiredPoints(kid);
+        const dishPenaltyRemaining =
+          kid.dishesLoadDone && kid.dishesUnloadDone
+            ? 0
+            : kid.dishPenaltyPoints;
+
+        // Completed chore points pay down carryover overdue FIRST.
+        // Only points beyond carryover count toward this week's base progress.
+        const required = BASE_POINTS + kid.carryoverPoints + dishPenaltyRemaining;
+        const carryoverPaid = Math.min(completed, kid.carryoverPoints);
+        const carryoverRemaining = Math.max(0, kid.carryoverPoints - carryoverPaid);
+        const baseCompleted = Math.max(0, completed - kid.carryoverPoints);
         const pointsRemaining = Math.max(0, required - completed);
-        const storedOverdue = kid.carryoverPoints + kid.dishPenaltyPoints;
-        const pointsAppliedPastBase = Math.max(0, completed - BASE_POINTS);
-        const overduePoints = Math.max(0, storedOverdue - pointsAppliedPastBase);
-        const progress = required === 0 ? 100 : Math.min(100, Math.round((completed / required) * 100));
+        const overduePoints = carryoverRemaining + dishPenaltyRemaining;
+        const storedOverdue = kid.carryoverPoints + dishPenaltyRemaining;
+        const progress = Math.min(100, Math.round((Math.min(BASE_POINTS, baseCompleted) / BASE_POINTS) * 100));
         const completionRate = kid.weeksTracked > 0 ? Math.round((kid.weeksSuccessful / kid.weeksTracked) * 100) : 0;
-        return { ...kid, completedPoints: completed, requiredPoints: required, pointsRemaining, overduePoints, storedOverdue, progress, completionRate };
+
+        return {
+          ...kid,
+          completedPoints: completed,
+          requiredPoints: required,
+          pointsRemaining,
+          overduePoints,
+          storedOverdue,
+          carryoverPaid,
+          carryoverRemaining,
+          baseCompleted,
+          progress,
+          completionRate,
+        };
       }),
     [kids]
   );
 
   const selectedKid = kidsWithMetrics.find((kid) => kid.id === selectedKidId) ?? null;
+
+  const recentParentDishLoad = useMemo(() => {
+    const latestParentLoad = [...completionEvents]
+      .reverse()
+      .find((event) => event.choreId === PARENT_DISH_CHORE_ID);
+
+    if (!latestParentLoad) return null;
+    const age = Date.now() - new Date(latestParentLoad.at).getTime();
+    return age <= PARENT_DISH_UNDO_MS ? latestParentLoad : null;
+  }, [completionEvents, clock]);
 
   const grocerySuggestions = useMemo(() => {
     const q = groceryInput.trim().toLowerCase();
@@ -434,10 +468,17 @@ export default function App() {
     ]);
   }
 
-  function removeLatestCompletion(kidId: number, choreId: number) {
+  function removeLatestCompletion(kidId: number, choreId: number, kind?: CompletionEvent["kind"]) {
     setCompletionEvents((previous) => {
-      const reverseIndex = [...previous].reverse().findIndex((event) => event.kidId === kidId && event.choreId === choreId);
+      const reverseIndex = [...previous].reverse().findIndex((event) => {
+        const sameKid = event.kidId === kidId;
+        const sameChore = event.choreId === choreId;
+        const sameKind = kind ? event.kind === kind : true;
+        return sameKid && sameChore && sameKind;
+      });
+
       if (reverseIndex < 0) return previous;
+
       const realIndex = previous.length - 1 - reverseIndex;
       return previous.filter((_, index) => index !== realIndex);
     });
@@ -449,7 +490,7 @@ export default function App() {
       if (!chore) return kid;
 
       if (chore.doneCount > 0) {
-        removeLatestCompletion(kid.id, chore.id);
+        removeLatestCompletion(kid.id, chore.id, "library");
         return {
           ...kid,
           chores: sortByName(kid.chores.map((item) => (item.id === choreId ? { ...item, doneCount: Math.max(0, item.doneCount - 1) } : item))),
@@ -489,7 +530,7 @@ export default function App() {
       if (!chore) return kid;
       const nextCount = chore.doneCount > 0 ? 0 : 1;
       if (nextCount) logCompletion(kid, chore, "custom");
-      else removeLatestCompletion(kid.id, chore.id);
+      else removeLatestCompletion(kid.id, chore.id, "custom");
 
       return {
         ...kid,
@@ -506,10 +547,31 @@ export default function App() {
       const points = field === "bathroomDone" ? BATHROOM_POINTS : 0;
 
       if (nextValue) logCompletion(kid, { id: choreId, name: choreName, points }, field === "bathroomDone" ? "bathroom" : "dishes");
-      else removeLatestCompletion(kid.id, choreId);
+      else removeLatestCompletion(kid.id, choreId, field === "bathroomDone" ? "bathroom" : "dishes");
 
       return { ...kid, [field]: nextValue };
     });
+  }
+
+  function toggleParentDishLoad() {
+    if (recentParentDishLoad) {
+      setCompletionEvents((previous) => previous.filter((event) => event.id !== recentParentDishLoad.id));
+      return;
+    }
+
+    setCompletionEvents((previous) => [
+      ...previous,
+      {
+        id: Date.now() + Math.random(),
+        kidId: 0,
+        kidName: "Parents",
+        choreId: PARENT_DISH_CHORE_ID,
+        choreName: "load dishes",
+        points: 0,
+        at: isoNow(),
+        kind: "dishes",
+      },
+    ]);
   }
 
   function addGroceryItem() {
@@ -785,9 +847,15 @@ export default function App() {
 
 
   function SummaryPanel() {
-    const loadsDone = completionEvents.filter((event) => event.choreName === "load dishes").length;
+    const kidLoadsDone = kids.filter((kid) => kid.dishesLoadDone).length;
+    const parentLoadsDone = completionEvents.filter((event) => event.choreId === PARENT_DISH_CHORE_ID).length;
+    const loadsDone = kidLoadsDone + parentLoadsDone;
     const totalMarked = kids.reduce(
-      (sum, kid) => sum + kid.chores.reduce((s, chore) => s + chore.doneCount, 0) + kid.customChores.reduce((s, chore) => s + chore.doneCount, 0),
+      (sum, kid) =>
+        sum +
+        kid.chores.reduce((s, chore) => s + chore.doneCount, 0) +
+        kid.customChores.reduce((s, chore) => s + chore.doneCount, 0) +
+        (kid.bathroomAssigned && kid.bathroomDone ? 1 : 0),
       0
     );
 
@@ -881,7 +949,12 @@ export default function App() {
               <div className="app-title">🏠 Hadtieri House</div>
               <div className="app-version">{VERSION}</div>
             </div>
-            <button className="button" onClick={() => setScreen("parent")}>Parent Console</button>
+            <div className="home-actions">
+              <button className={`button ${recentParentDishLoad ? "danger" : ""}`} onClick={toggleParentDishLoad}>
+                {recentParentDishLoad ? "Undo Parent Dishes" : "Parent Dishes +1"}
+              </button>
+              <button className="button" onClick={() => setScreen("parent")}>Parent Console</button>
+            </div>
           </div>
 
           <div className="dashboard">
@@ -952,6 +1025,41 @@ export default function App() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+
+  function AuditHistory() {
+    const recentEvents = [...completionEvents]
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 30);
+
+    return (
+      <div className="card audit-card">
+        <div className="section-title">Recent Activity / Audit History</div>
+        {recentEvents.length === 0 ? (
+          <div className="muted">No chore activity yet.</div>
+        ) : (
+          <div className="audit-list">
+            {recentEvents.map((event) => (
+              <div className="audit-row" key={event.id}>
+                <div>
+                  <strong>{event.kidName}</strong> marked <strong>{event.choreName}</strong>
+                  {event.points > 0 ? <span> · {event.points} pt</span> : null}
+                </div>
+                <div className="muted tiny">
+                  {new Date(event.at).toLocaleString([], {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -1111,6 +1219,8 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {AuditHistory()}
             </div>
           )}
         </div>
