@@ -1,0 +1,857 @@
+*{box-sizing:border-box}
+
+html,body,#root{
+  margin:0;
+  width:100%;
+  height:100%;
+}
+
+html{
+  font-size:clamp(14px,1vw,18px);
+}
+
+body{
+  overflow:hidden;
+  background:#020617;
+  touch-action:manipulation;
+}
+
+button,input,select{
+  font:inherit;
+}
+
+.page{
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  padding:8px;
+  color:white;
+  background:radial-gradient(circle at top,#1e293b 0%,#020617 60%);
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.scroll-page{
+  overflow:auto;
+}
+
+.shell{
+  width:100%;
+  max-width:1920px;
+  height:100%;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-height:0;
+}
+
+.parent-shell{
+  height:auto;
+  min-height:100%;
+}
+
+.card,.kid-tile,.chore-tile{
+  background:rgba(15,23,42,.92);
+  border:1px solid #334155;
+  border-radius:16px;
+  padding:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
+}
+
+.header-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:6px;
+}
+
+.header-card{
+  min-height:55px;
+}
+
+.muted{
+  color:#94a3b8;
+  font-size:12px;
+}
+
+.tiny{
+  font-size:11px;
+}
+
+.headline{
+  font-size:24px;
+  font-weight:900;
+}
+
+.header-value{
+  font-size:18px;
+  font-weight:900;
+}
+
+.title-row,.row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.title-left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.app-title{
+  font-size:32px;
+  font-weight:900;
+  line-height:1;
+}
+
+.app-version{
+  font-size:14px;
+  color:#cbd5e1;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.big-number{
+  font-size:30px;
+  font-weight:900;
+}
+
+.dashboard{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:330px 1fr;
+  gap:6px;
+  overflow:hidden;
+}
+
+.main-area{
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:6px;
+  overflow:hidden;
+}
+
+.dog-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.mini-card,.metric,.parent-row,.grocery-row{
+  background:#020617;
+  border:1px solid #334155;
+  border-radius:12px;
+  padding:8px;
+}
+
+.danger-card{
+  background:rgba(127,29,29,.95);
+  border-color:#f87171;
+}
+
+.mini-title{
+  font-size:13px;
+}
+
+.mini-status{
+  font-size:18px;
+  font-weight:900;
+  margin:4px 0;
+}
+
+.kids-grid{
+  min-height:0;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:6px;
+  overflow:hidden;
+}
+
+.kid-tile{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  min-height:0;
+  overflow:hidden;
+}
+
+.tile-overdue{
+  background:rgba(127,29,29,.94);
+  border-color:#f87171;
+}
+
+.tile-complete{
+  background:rgba(5,46,22,.94);
+  border-color:#22c55e;
+}
+
+.kid-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:6px;
+}
+
+.kid-name{
+  font-size:20px;
+  font-weight:900;
+}
+
+.quote{
+  font-size:11px;
+  font-weight:700;
+  color:#cbd5e1;
+  min-height:25px;
+}
+
+.pill{
+  background:#334155;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:900;
+}
+
+.progress{
+  height:8px;
+  border-radius:999px;
+  background:#1e293b;
+  overflow:hidden;
+}
+
+.progress div{
+  height:100%;
+  background:linear-gradient(90deg,#22c55e,#38bdf8);
+}
+
+.tile-metrics,.kid-summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.kid-summary{
+  grid-template-columns:repeat(4,1fr);
+}
+
+.metric{
+  text-align:center;
+  font-weight:900;
+}
+
+.metric strong{
+  font-size:20px;
+}
+
+.metric-danger{
+  background:#7f1d1d;
+  border-color:#f87171;
+}
+
+.tile-actions{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.button{
+  background:#2563eb;
+  color:white;
+  border:none;
+  border-radius:13px;
+  padding:10px 12px;
+  min-height:46px;
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.button:active{
+  transform:scale(.98);
+}
+
+.button.full{
+  width:100%;
+}
+
+.button.secondary{
+  background:#475569;
+}
+
+.button.success{
+  background:#059669;
+}
+
+.button.danger{
+  background:#dc2626;
+}
+
+.button.disabled{
+  background:#64748b;
+}
+
+.button.small{
+  min-height:36px;
+  padding:6px 9px;
+}
+
+.track{
+  width:100%;
+  flex:1;
+  min-height:90px;
+  font-size:18px;
+}
+
+.section-title{
+  font-size:16px;
+  font-weight:900;
+  margin-bottom:6px;
+}
+
+.grocery-card{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.grocery-form{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.input{
+  min-width:0;
+  background:#0f172a;
+  color:white;
+  border:1px solid #475569;
+  border-radius:10px;
+  padding:10px;
+}
+
+.suggestions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:6px;
+}
+
+.suggestion{
+  border:none;
+  background:#334155;
+  color:white;
+  border-radius:10px;
+  padding:6px 9px;
+  font-weight:900;
+  font-size:12px;
+}
+
+.suggestion.active{
+  background:#2563eb;
+}
+
+.grocery-list{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  align-content:start;
+  overflow:auto;
+}
+
+.grocery-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+}
+
+.weather-main{
+  background:#020617;
+  border:1px solid #334155;
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:15px;
+  font-weight:900;
+  min-height:54px;
+  display:flex;
+  align-items:center;
+}
+
+.chore-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.chore-tile{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-height:130px;
+  color:white;
+  text-align:left;
+}
+
+.chore-done{
+  background:#064e3b;
+  border-color:#22c55e;
+}
+
+.chore-name{
+  font-size:18px;
+  font-weight:900;
+}
+
+.parent-content{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.parent-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.form-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+.form-row.wrap{
+  flex-wrap:wrap;
+}
+
+.form-column{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.library-list,.parent-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:420px;
+  overflow:auto;
+}
+
+.library-row{
+  display:grid;
+  grid-template-columns:1.3fr 90px 130px auto auto auto;
+  gap:8px;
+  align-items:center;
+  background:#020617;
+  border:1px solid #334155;
+  border-radius:12px;
+  padding:8px;
+}
+
+.library-row.simple{
+  grid-template-columns:1fr auto;
+}
+
+.small-input{
+  max-width:90px;
+}
+
+.message{
+  color:#facc15;
+  margin-top:8px;
+}
+
+.pin-card{
+  max-width:520px;
+}
+
+.report-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+
+.report-item{
+  border-top:1px solid #334155;
+  padding-top:8px;
+  margin-top:8px;
+}
+
+/* PORTRAIT MONITOR MODE */
+
+@media screen and (max-aspect-ratio: 3/4){
+
+  body{
+    overflow:hidden;
+  }
+
+  .page{
+    height:100vh;
+    padding:4px;
+    overflow:hidden;
+  }
+
+  .shell{
+    height:100vh;
+    gap:4px;
+  }
+
+  .header-grid{
+    grid-template-columns:1fr 1fr 1fr;
+    gap:4px;
+  }
+
+  .header-card{
+    min-height:52px;
+    padding:7px;
+  }
+
+  .headline{
+    font-size:20px;
+  }
+
+  .header-value{
+    font-size:15px;
+  }
+
+  .muted{
+    font-size:9px;
+  }
+
+  .title-row{
+    min-height:40px;
+  }
+
+  .app-title{
+    font-size:22px;
+  }
+
+  .app-version{
+    font-size:10px;
+  }
+
+  .summary-grid{
+    grid-template-columns:1fr 1fr;
+    gap:4px;
+  }
+
+  .dashboard{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    overflow:hidden;
+  }
+
+  .main-area{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    overflow:hidden;
+  }
+
+  .grocery-card{
+    min-height:190px;
+    max-height:190px;
+    padding:5px;
+  }
+
+  .grocery-form{
+    gap:4px;
+    margin-bottom:4px;
+  }
+
+  .input{
+    font-size:14px;
+    padding:10px;
+  }
+
+  .suggestion{
+    font-size:12px;
+    padding:6px 8px;
+  }
+
+  .grocery-list{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:5px;
+    overflow:auto;
+    align-content:start;
+  }
+
+  .grocery-row{
+    min-height:30px;
+    padding:4px 6px;
+  }
+
+  .grocery-row strong{
+    font-size:11px;
+  }
+
+  .grocery-row .tiny{
+    display:none;
+  }
+
+  .grocery-row .button{
+    min-height:24px;
+    font-size:9px;
+    padding:3px 5px;
+    border-radius:8px;
+  }
+
+  .dog-grid{
+    grid-template-columns:1fr 1fr 1fr;
+    gap:4px;
+  }
+
+  .mini-card{
+    padding:6px;
+  }
+
+  .mini-title{
+    font-size:8px;
+  }
+
+  .mini-status{
+    font-size:12px;
+    margin:1px 0;
+  }
+
+  .kids-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:repeat(3,1fr);
+    gap:4px;
+    overflow:hidden;
+    flex:1;
+    min-height:0;
+  }
+
+  .kid-tile{
+    min-height:165px;
+    padding:5px;
+    gap:3px;
+  }
+
+  .kid-name{
+    font-size:15px;
+  }
+
+  .quote{
+    font-size:8px;
+    line-height:1.1;
+    min-height:12px;
+  }
+
+  .pill{
+    font-size:7px;
+    padding:2px 5px;
+  }
+
+  .progress{
+    height:4px;
+  }
+
+  .metric{
+    padding:3px;
+    font-size:8px;
+  }
+
+  .metric strong{
+    font-size:15px;
+  }
+
+  .button{
+    min-height:30px;
+    font-size:11px;
+    padding:4px 6px;
+  }
+
+  .button.small{
+    min-height:24px;
+    font-size:9px;
+    padding:3px 5px;
+  }
+
+  .track{
+    min-height:42px;
+    font-size:15px;
+  }
+
+  .weather-main{
+    min-height:54px;
+    font-size:11px;
+    padding:6px 8px;
+  }
+
+  .section-title{
+    font-size:12px;
+    margin-bottom:4px;
+  }
+
+  .library-row{
+    grid-template-columns:1fr;
+  }
+
+  .parent-grid,.report-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* v5.5.26b SAFE SCROLL + COMPACT CHORE FIX
+   Keep this section at the bottom of App.css. */
+
+/* Kid, parent, and report pages must be scrollable */
+.page.scroll-page{
+  height:100vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+.scroll-page .shell{
+  height:auto;
+  min-height:100vh;
+  overflow:visible;
+}
+
+/* Compact chore selection screens */
+.page.scroll-page .chore-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:6px;
+  padding-bottom:80px;
+  overflow:visible;
+}
+
+.page.scroll-page .chore-tile{
+  min-height:92px;
+  padding:6px;
+  gap:5px;
+  border-radius:12px;
+}
+
+.page.scroll-page .chore-name{
+  font-size:15px;
+  line-height:1.1;
+}
+
+.page.scroll-page .chore-tile .muted,
+.page.scroll-page .chore-tile .tiny{
+  font-size:10px;
+  line-height:1.1;
+}
+
+.page.scroll-page .chore-tile .button{
+  min-height:28px;
+  font-size:11px;
+  padding:4px 6px;
+  border-radius:8px;
+}
+
+/* Landscape kiosk cleanup */
+@media screen and (orientation:landscape){
+
+  .page:not(.scroll-page){
+    overflow:hidden;
+  }
+
+  .dog-grid{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:4px;
+  }
+
+  .dog-grid .mini-card{
+    padding:5px;
+  }
+
+  .dog-grid .mini-title{
+    font-size:10px;
+  }
+
+  .dog-grid .mini-status{
+    font-size:14px;
+    margin:1px 0;
+  }
+
+  .dog-grid .button{
+    min-height:32px;
+    font-size:11px;
+    padding:4px 6px;
+  }
+
+  .kids-grid{
+    gap:5px;
+  }
+
+  .kid-tile{
+    padding:7px;
+    gap:5px;
+  }
+
+  .kid-name{
+    font-size:19px;
+  }
+
+  .quote{
+    font-size:10px;
+    min-height:14px;
+  }
+
+  .metric{
+    padding:5px;
+  }
+
+  .metric strong{
+    font-size:18px;
+  }
+
+  .button{
+    min-height:36px;
+    font-size:12px;
+    padding:5px 7px;
+  }
+
+  .track{
+    min-height:46px;
+    font-size:16px;
+  }
+}
+
+/* Extra-tight landscape checklist when height is limited */
+@media screen and (orientation:landscape) and (max-height:700px){
+
+  .page.scroll-page .chore-grid{
+    gap:5px;
+  }
+
+  .page.scroll-page .chore-tile{
+    min-height:82px;
+    padding:5px;
+    gap:4px;
+  }
+
+  .page.scroll-page .chore-name{
+    font-size:14px;
+  }
+
+  .page.scroll-page .chore-tile .button{
+    min-height:24px;
+    font-size:10px;
+    padding:3px 5px;
+  }
+}
