@@ -1207,3 +1207,19 @@ button,input,select{
     gap:2px;
   }
 }
+
+/* v5.5.26h one-time weekly chore claimed styling */
+.chore-claimed{
+  background:rgba(133,77,14,.95) !important;
+  border-color:#facc15 !important;
+}
+
+.button.claimed{
+  background:#ca8a04 !important;
+  color:#111827 !important;
+  cursor:not-allowed !important;
+}
+
+.chore-claimed .muted{
+  color:#fde68a !important;
+}

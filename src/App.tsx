@@ -68,7 +68,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26g";
+const VERSION = "v5.5.26h";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -453,6 +453,23 @@ export default function App() {
     setKids((previousKids) => previousKids.map((kid) => (kid.id === kidId ? updater(kid) : kid)));
   }
 
+  function singleUseChoreOwner(choreId: number) {
+    return kids.find((kid) =>
+      kid.chores.some((chore) =>
+        chore.id === choreId &&
+        chore.doneCount > 0 &&
+        !chore.unlimitedPerWeek &&
+        !chore.allowParentOverride
+      )
+    ) ?? null;
+  }
+
+  function isSingleUseLockedForKid(kidId: number, chore: Chore) {
+    if (chore.unlimitedPerWeek || chore.allowParentOverride) return false;
+    const owner = singleUseChoreOwner(chore.id);
+    return Boolean(owner && owner.id !== kidId);
+  }
+
   function logCompletion(kid: Kid, chore: { id: number; name: string; points: number }, kind: CompletionEvent["kind"]) {
     setCompletionEvents((previous) => [
       ...previous,
@@ -489,6 +506,10 @@ export default function App() {
     updateKid(kidId, (kid) => {
       const chore = kid.chores.find((item) => item.id === choreId);
       if (!chore) return kid;
+
+      if (isSingleUseLockedForKid(kid.id, chore)) {
+        return kid;
+      }
 
       if (chore.doneCount > 0) {
         removeLatestCompletion(kid.id, chore.id, "library");
@@ -1018,18 +1039,35 @@ export default function App() {
           <div className="card">
             <div className="section-title">Weekly Checklist</div>
             <div className="chore-grid">
-              {kid.chores.map((chore) => (
-                <div className={`chore-tile ${chore.doneCount ? "chore-done" : ""}`} key={chore.id}>
-                  <div className="chore-name">{chore.name}</div>
-                  <div className="muted">{chore.category} · {chore.points} pt · {chore.doneCount}x</div>
-                  <button className={`button full ${chore.doneCount ? "secondary" : "success"}`} onClick={() => markChore(kid.id, chore.id)}>
-                    {chore.doneCount ? "Undo One" : "Mark Done"}
-                  </button>
-                  {chore.doneCount > 0 && (chore.unlimitedPerWeek || chore.allowParentOverride) && (
-                    <button className="button full" onClick={() => addExtraChore(kid.id, chore.id)}>+ Extra</button>
-                  )}
-                </div>
-              ))}
+              {kid.chores.map((chore) => {
+                const singleUseOwner = !chore.unlimitedPerWeek && !chore.allowParentOverride ? singleUseChoreOwner(chore.id) : null;
+                const lockedForThisKid = Boolean(singleUseOwner && singleUseOwner.id !== kid.id);
+                const claimedThisWeek = Boolean(singleUseOwner);
+
+                return (
+                  <div
+                    className={`chore-tile ${chore.doneCount ? "chore-done" : ""} ${claimedThisWeek && !chore.doneCount ? "chore-claimed" : ""}`}
+                    key={chore.id}
+                  >
+                    <div className="chore-name">{chore.name}</div>
+                    <div className="muted">
+                      {chore.category} · {chore.points} pt · {chore.doneCount}x
+                      {lockedForThisKid && singleUseOwner ? ` · Done by ${singleUseOwner.name}` : ""}
+                      {chore.doneCount > 0 && !chore.unlimitedPerWeek && !chore.allowParentOverride ? " · Claimed" : ""}
+                    </div>
+                    <button
+                      className={`button full ${lockedForThisKid ? "claimed" : chore.doneCount ? "secondary" : "success"}`}
+                      onClick={() => markChore(kid.id, chore.id)}
+                      disabled={lockedForThisKid}
+                    >
+                      {lockedForThisKid && singleUseOwner ? `Done by ${singleUseOwner.name}` : chore.doneCount ? "Undo One" : "Mark Done"}
+                    </button>
+                    {chore.doneCount > 0 && (chore.unlimitedPerWeek || chore.allowParentOverride) && (
+                      <button className="button full" onClick={() => addExtraChore(kid.id, chore.id)}>+ Extra</button>
+                    )}
+                  </div>
+                );
+              })}
               {kid.customChores.map((chore) => (
                 <button className={`chore-tile ${chore.doneCount ? "chore-done" : ""}`} key={chore.id} onClick={() => toggleCustomChore(kid.id, chore.id)}>
                   <div className="chore-name">{chore.name}</div>
