@@ -272,7 +272,7 @@ export default function App() {
   const [lastWeekKey, setLastWeekKey] = useState(initial.lastWeekKey);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setClock(new Date()), 60 * 1000);
+    const timer = window.setInterval(() => setClock(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
