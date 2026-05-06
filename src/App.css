@@ -947,3 +947,193 @@ button,input,select{
     padding:5px !important;
   }
 }
+
+/* v5.5.26c LANDSCAPE HOME FIT FIX
+   Keeps home dashboard at 100% zoom and shows all kid action/Track buttons. */
+
+@media screen and (orientation:landscape){
+
+  .page:not(.scroll-page){
+    height:100vh !important;
+    overflow:hidden !important;
+    padding:4px !important;
+  }
+
+  .shell{
+    height:100vh !important;
+    gap:3px !important;
+  }
+
+  .header-grid{
+    gap:4px !important;
+  }
+
+  .header-card{
+    min-height:40px !important;
+    padding:5px !important;
+  }
+
+  .headline{
+    font-size:18px !important;
+  }
+
+  .header-value{
+    font-size:14px !important;
+  }
+
+  .title-row{
+    min-height:34px !important;
+    gap:6px !important;
+  }
+
+  .app-title{
+    font-size:28px !important;
+  }
+
+  .app-version{
+    font-size:10px !important;
+  }
+
+  .dashboard{
+    grid-template-columns:300px 1fr !important;
+    gap:5px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  .left-column{
+    gap:4px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  .sidebar-summary{
+    gap:4px !important;
+  }
+
+  .sidebar-stat{
+    min-height:48px !important;
+    padding:5px !important;
+  }
+
+  .big-number{
+    font-size:24px !important;
+  }
+
+  .grocery-card{
+    padding:6px !important;
+  }
+
+  .main-area{
+    display:grid !important;
+    grid-template-rows:auto 1fr auto !important;
+    gap:4px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  .dog-grid{
+    gap:4px !important;
+  }
+
+  .dog-grid .mini-card{
+    padding:4px !important;
+  }
+
+  .dog-grid .mini-title{
+    font-size:9px !important;
+  }
+
+  .dog-grid .mini-status{
+    font-size:12px !important;
+    margin:1px 0 !important;
+  }
+
+  .dog-grid .button{
+    min-height:28px !important;
+    font-size:10px !important;
+    padding:3px 5px !important;
+  }
+
+  .kids-grid{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    grid-template-rows:repeat(3,minmax(0,1fr)) !important;
+    gap:4px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  .kid-tile{
+    min-height:0 !important;
+    padding:5px !important;
+    gap:3px !important;
+    overflow:hidden !important;
+  }
+
+  .kid-top{
+    gap:4px !important;
+  }
+
+  .kid-name{
+    font-size:19px !important;
+    line-height:1 !important;
+  }
+
+  .quote{
+    font-size:8px !important;
+    line-height:1.05 !important;
+    min-height:10px !important;
+  }
+
+  .pill{
+    font-size:8px !important;
+    padding:2px 5px !important;
+  }
+
+  .progress{
+    height:4px !important;
+  }
+
+  .tile-metrics{
+    gap:4px !important;
+  }
+
+  .metric{
+    padding:4px !important;
+    font-size:9px !important;
+  }
+
+  .metric strong{
+    font-size:17px !important;
+  }
+
+  .tile-actions{
+    grid-template-columns:1fr 1fr 1fr !important;
+    gap:4px !important;
+  }
+
+  .button{
+    min-height:30px !important;
+    font-size:11px !important;
+    padding:4px 6px !important;
+    border-radius:10px !important;
+  }
+
+  .track{
+    min-height:34px !important;
+    font-size:14px !important;
+    flex:0 0 auto !important;
+  }
+
+  .weather-main{
+    min-height:38px !important;
+    font-size:12px !important;
+    padding:5px 8px !important;
+  }
+
+  .section-title{
+    font-size:13px !important;
+    margin-bottom:3px !important;
+  }
+}
