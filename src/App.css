@@ -712,146 +712,238 @@ button,input,select{
   }
 }
 
-/* v5.5.26b SAFE SCROLL + COMPACT CHORE FIX
-   Keep this section at the bottom of App.css. */
+/* DASHBOARD RELAYOUT + SCROLL FIX v5.5.26b */
 
-/* Kid, parent, and report pages must be scrollable */
+/* New left sidebar area */
+.left-column{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  overflow:hidden;
+}
+
+.sidebar-summary{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
+}
+
+.sidebar-stat{
+  min-height:58px;
+}
+
+/* Detail pages must scroll */
 .page.scroll-page{
-  height:100vh;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
+  height:100vh !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch !important;
 }
 
 .scroll-page .shell{
-  height:auto;
-  min-height:100vh;
-  overflow:visible;
+  height:auto !important;
+  min-height:100vh !important;
+  overflow:visible !important;
 }
 
-/* Compact chore selection screens */
+/* Compact chore selection screen */
 .page.scroll-page .chore-grid{
-  display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
-  gap:6px;
-  padding-bottom:80px;
-  overflow:visible;
+  display:grid !important;
+  grid-template-columns:repeat(4, minmax(0, 1fr)) !important;
+  gap:6px !important;
+  padding-bottom:80px !important;
+  overflow:visible !important;
 }
 
 .page.scroll-page .chore-tile{
-  min-height:92px;
-  padding:6px;
-  gap:5px;
-  border-radius:12px;
+  min-height:92px !important;
+  padding:6px !important;
+  gap:5px !important;
+  border-radius:12px !important;
 }
 
 .page.scroll-page .chore-name{
-  font-size:15px;
-  line-height:1.1;
+  font-size:15px !important;
+  line-height:1.1 !important;
 }
 
 .page.scroll-page .chore-tile .muted,
 .page.scroll-page .chore-tile .tiny{
-  font-size:10px;
-  line-height:1.1;
+  font-size:10px !important;
+  line-height:1.1 !important;
 }
 
 .page.scroll-page .chore-tile .button{
-  min-height:28px;
-  font-size:11px;
-  padding:4px 6px;
-  border-radius:8px;
+  min-height:28px !important;
+  font-size:11px !important;
+  padding:4px 6px !important;
+  border-radius:8px !important;
 }
 
-/* Landscape kiosk cleanup */
 @media screen and (orientation:landscape){
 
   .page:not(.scroll-page){
-    overflow:hidden;
+    height:100vh !important;
+    overflow:hidden !important;
+  }
+
+  .dashboard{
+    grid-template-columns:300px 1fr !important;
+    gap:6px !important;
+    overflow:hidden !important;
+    min-height:0 !important;
+  }
+
+  .left-column{
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+
+  .sidebar-summary{
+    grid-template-columns:1fr 1fr !important;
+    gap:5px !important;
+  }
+
+  .sidebar-stat{
+    min-height:58px !important;
+    padding:7px !important;
+  }
+
+  .grocery-card{
+    flex:1 !important;
+    min-height:0 !important;
+    height:auto !important;
+    padding:8px !important;
+  }
+
+  .grocery-form{
+    grid-template-columns:1fr !important;
+    gap:6px !important;
+  }
+
+  .grocery-form .button{
+    width:100% !important;
+  }
+
+  .grocery-list{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:6px !important;
+    overflow:auto !important;
+  }
+
+  .main-area{
+    display:grid !important;
+    grid-template-rows:auto 1fr auto !important;
+    gap:6px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
   }
 
   .dog-grid{
-    grid-template-columns:repeat(3, minmax(0, 1fr));
-    gap:4px;
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+    gap:4px !important;
   }
 
   .dog-grid .mini-card{
-    padding:5px;
+    padding:5px !important;
   }
 
-  .dog-grid .mini-title{
-    font-size:10px;
+  .dog-grid .mini-title,
+  .mini-title{
+    font-size:10px !important;
   }
 
-  .dog-grid .mini-status{
-    font-size:14px;
-    margin:1px 0;
+  .dog-grid .mini-status,
+  .mini-status{
+    font-size:14px !important;
+    margin:1px 0 !important;
   }
 
   .dog-grid .button{
-    min-height:32px;
-    font-size:11px;
-    padding:4px 6px;
+    min-height:32px !important;
+    font-size:11px !important;
+    padding:4px 6px !important;
   }
 
   .kids-grid{
-    gap:5px;
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    grid-template-rows:repeat(3,1fr) !important;
+    gap:5px !important;
+    min-height:0 !important;
+    overflow:hidden !important;
   }
 
   .kid-tile{
-    padding:7px;
-    gap:5px;
+    padding:7px !important;
+    gap:5px !important;
+    min-height:0 !important;
   }
 
   .kid-name{
-    font-size:19px;
+    font-size:19px !important;
   }
 
   .quote{
-    font-size:10px;
-    min-height:14px;
+    font-size:10px !important;
+    min-height:14px !important;
   }
 
   .metric{
-    padding:5px;
+    padding:5px !important;
   }
 
   .metric strong{
-    font-size:18px;
+    font-size:18px !important;
   }
 
   .button{
-    min-height:36px;
-    font-size:12px;
-    padding:5px 7px;
+    min-height:36px !important;
+    font-size:12px !important;
+    padding:5px 7px !important;
   }
 
   .track{
-    min-height:46px;
-    font-size:16px;
+    min-height:46px !important;
+    font-size:16px !important;
   }
 }
 
-/* Extra-tight landscape checklist when height is limited */
 @media screen and (orientation:landscape) and (max-height:700px){
 
-  .page.scroll-page .chore-grid{
-    gap:5px;
-  }
-
   .page.scroll-page .chore-tile{
-    min-height:82px;
-    padding:5px;
-    gap:4px;
+    min-height:82px !important;
+    padding:5px !important;
+    gap:4px !important;
   }
 
   .page.scroll-page .chore-name{
-    font-size:14px;
+    font-size:14px !important;
   }
 
   .page.scroll-page .chore-tile .button{
-    min-height:24px;
-    font-size:10px;
-    padding:3px 5px;
+    min-height:24px !important;
+    font-size:10px !important;
+    padding:3px 5px !important;
+  }
+}
+
+/* Portrait keeps the left column readable */
+@media screen and (max-aspect-ratio:3/4){
+
+  .left-column{
+    gap:4px !important;
+  }
+
+  .sidebar-summary{
+    grid-template-columns:1fr 1fr !important;
+    gap:4px !important;
+  }
+
+  .sidebar-stat{
+    min-height:44px !important;
+    padding:5px !important;
   }
 }

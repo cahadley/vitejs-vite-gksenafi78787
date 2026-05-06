@@ -783,6 +783,28 @@ export default function App() {
     );
   }
 
+
+  function SummaryPanel() {
+    const loadsDone = completionEvents.filter((event) => event.choreName === "load dishes").length;
+    const totalMarked = kids.reduce(
+      (sum, kid) => sum + kid.chores.reduce((s, chore) => s + chore.doneCount, 0) + kid.customChores.reduce((s, chore) => s + chore.doneCount, 0),
+      0
+    );
+
+    return (
+      <div className="sidebar-summary">
+        <div className="card sidebar-stat">
+          <div className="muted">Total chores marked</div>
+          <div className="big-number">{totalMarked}</div>
+        </div>
+        <div className="card sidebar-stat">
+          <div className="muted">Loads of dishes done</div>
+          <div className="big-number">{loadsDone}</div>
+        </div>
+      </div>
+    );
+  }
+
   function Metric(props: { label: string; value: number; danger?: boolean }) {
     return (
       <div className={`metric ${props.danger ? "metric-danger" : ""}`}>
@@ -849,12 +871,6 @@ export default function App() {
   }
 
   function HomeScreen() {
-    const loadsDone = completionEvents.filter((event) => event.choreName === "load dishes").length;
-    const totalMarked = kids.reduce(
-      (sum, kid) => sum + kid.chores.reduce((s, chore) => s + chore.doneCount, 0) + kid.customChores.reduce((s, chore) => s + chore.doneCount, 0),
-      0
-    );
-
     return (
       <div className="page">
         <div className="shell">
@@ -868,19 +884,12 @@ export default function App() {
             <button className="button" onClick={() => setScreen("parent")}>Parent Console</button>
           </div>
 
-          <div className="summary-grid">
-            <div className="card">
-              <div className="muted">Total chores marked</div>
-              <div className="big-number">{totalMarked}</div>
-            </div>
-            <div className="card">
-              <div className="muted">Loads of dishes done</div>
-              <div className="big-number">{loadsDone}</div>
-            </div>
-          </div>
-
           <div className="dashboard">
-            {GroceryPanel()}
+            <div className="left-column">
+              {SummaryPanel()}
+              {GroceryPanel()}
+            </div>
+
             <div className="main-area">
               {DogCard()}
               <div className="kids-grid">
