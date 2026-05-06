@@ -68,13 +68,14 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26e";
+const VERSION = "v5.5.26f";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
 const DISH_PENALTY = 3;
 const PARENT_DISH_CHORE_ID = -201;
 const PARENT_DISH_UNDO_MS = 60 * 1000;
+const KID_SCREEN_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_PIN = "5422";
 const KID_NAMES = ["Morgan", "Marilyn", "James", "Calvin", "Anastasia", "Evie"];
 
@@ -937,6 +938,19 @@ export default function App() {
       </div>
     );
   }
+
+
+  // Auto-return kid screens to home after inactivity
+  useEffect(() => {
+    if (screen !== "kid") return;
+
+    const timer = window.setTimeout(() => {
+      setSelectedKidId(null);
+      setScreen("home");
+    }, KID_SCREEN_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [screen, selectedKidId, completionEvents, clock]);
 
   function HomeScreen() {
     return (
