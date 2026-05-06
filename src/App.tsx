@@ -68,7 +68,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26f";
+const VERSION = "v5.5.26g";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
