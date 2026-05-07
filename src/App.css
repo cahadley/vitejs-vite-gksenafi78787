@@ -1223,3 +1223,10 @@ button,input,select{
 .chore-claimed .muted{
   color:#fde68a !important;
 }
+
+/* v5.5.26i claimed parent-override chore styling */
+.button.claimed:not(:disabled){
+  background:#eab308 !important;
+  color:#111827 !important;
+  cursor:pointer !important;
+}

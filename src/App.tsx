@@ -68,7 +68,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26h";
+const VERSION = "v5.5.26i";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -458,14 +458,13 @@ export default function App() {
       kid.chores.some((chore) =>
         chore.id === choreId &&
         chore.doneCount > 0 &&
-        !chore.unlimitedPerWeek &&
-        !chore.allowParentOverride
+        !chore.unlimitedPerWeek
       )
     ) ?? null;
   }
 
-  function isSingleUseLockedForKid(kidId: number, chore: Chore) {
-    if (chore.unlimitedPerWeek || chore.allowParentOverride) return false;
+  function isSingleUseClaimedByAnotherKid(kidId: number, chore: Chore) {
+    if (chore.unlimitedPerWeek) return false;
     const owner = singleUseChoreOwner(chore.id);
     return Boolean(owner && owner.id !== kidId);
   }
@@ -507,8 +506,11 @@ export default function App() {
       const chore = kid.chores.find((item) => item.id === choreId);
       if (!chore) return kid;
 
-      if (isSingleUseLockedForKid(kid.id, chore)) {
-        return kid;
+      if (isSingleUseClaimedByAnotherKid(kid.id, chore)) {
+        if (!chore.allowParentOverride) return kid;
+
+        const pin = window.prompt(`Parent PIN required to override ${chore.name}:`, "");
+        if (pin !== parentPin) return kid;
       }
 
       if (chore.doneCount > 0) {
@@ -1040,8 +1042,9 @@ export default function App() {
             <div className="section-title">Weekly Checklist</div>
             <div className="chore-grid">
               {kid.chores.map((chore) => {
-                const singleUseOwner = !chore.unlimitedPerWeek && !chore.allowParentOverride ? singleUseChoreOwner(chore.id) : null;
-                const lockedForThisKid = Boolean(singleUseOwner && singleUseOwner.id !== kid.id);
+                const singleUseOwner = !chore.unlimitedPerWeek ? singleUseChoreOwner(chore.id) : null;
+                const claimedByAnotherKid = Boolean(singleUseOwner && singleUseOwner.id !== kid.id);
+                const lockedForThisKid = claimedByAnotherKid && !chore.allowParentOverride;
                 const claimedThisWeek = Boolean(singleUseOwner);
 
                 return (
@@ -1052,15 +1055,21 @@ export default function App() {
                     <div className="chore-name">{chore.name}</div>
                     <div className="muted">
                       {chore.category} · {chore.points} pt · {chore.doneCount}x
-                      {lockedForThisKid && singleUseOwner ? ` · Done by ${singleUseOwner.name}` : ""}
+                      {claimedByAnotherKid && singleUseOwner ? ` · Done by ${singleUseOwner.name}` : ""}
                       {chore.doneCount > 0 && !chore.unlimitedPerWeek && !chore.allowParentOverride ? " · Claimed" : ""}
                     </div>
                     <button
-                      className={`button full ${lockedForThisKid ? "claimed" : chore.doneCount ? "secondary" : "success"}`}
+                      className={`button full ${claimedByAnotherKid ? "claimed" : chore.doneCount ? "secondary" : "success"}`}
                       onClick={() => markChore(kid.id, chore.id)}
                       disabled={lockedForThisKid}
                     >
-                      {lockedForThisKid && singleUseOwner ? `Done by ${singleUseOwner.name}` : chore.doneCount ? "Undo One" : "Mark Done"}
+                      {claimedByAnotherKid && singleUseOwner
+                        ? chore.allowParentOverride
+                          ? `Override ${singleUseOwner.name}`
+                          : `Done by ${singleUseOwner.name}`
+                        : chore.doneCount
+                          ? "Undo One"
+                          : "Mark Done"}
                     </button>
                     {chore.doneCount > 0 && (chore.unlimitedPerWeek || chore.allowParentOverride) && (
                       <button className="button full" onClick={() => addExtraChore(kid.id, chore.id)}>+ Extra</button>
