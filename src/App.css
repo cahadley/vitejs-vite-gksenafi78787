@@ -1230,3 +1230,12 @@ button,input,select{
   color:#111827 !important;
   cursor:pointer !important;
 }
+
+
+
+/* v5.5.26j dog panel completed buttons */
+.dog-grid .button.success{
+  background:#16a34a !important;
+  border-color:#22c55e !important;
+  color:#ffffff !important;
+}
