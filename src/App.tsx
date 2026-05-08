@@ -68,7 +68,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.5.26j";
+const VERSION = "v5.6.26a";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -444,6 +444,11 @@ export default function App() {
     return completionEvents.filter((event) => new Date(event.at).getTime() >= cutoff);
   }, [completionEvents, reportPeriod]);
 
+  function openKidTile(kidId: number) {
+    setSelectedKidId(kidId);
+    setScreen("kid");
+  }
+
   function quoteForKid(kidId: number) {
     const slot = Math.floor(Date.now() / (15 * 60 * 1000));
     return QUOTES[(kidId - 1 + slot * KID_NAMES.length) % QUOTES.length] ?? "Do the next right thing.";
@@ -768,12 +773,12 @@ export default function App() {
     );
   }
 
-  function DogAction(props: { title: string; status: string; onClick: () => void; button: string }) {
+  function DogAction(props: { title: string; status: string; onClick: () => void; button: string; done?: boolean }) {
     return (
       <div className="mini-card">
         <div className="mini-title">{props.title}</div>
         <div className="mini-status">{props.status}</div>
-        <button className="button full" onClick={props.onClick}>{props.button}</button>
+        <button className={`button full ${props.done ? "success" : ""}`} onClick={props.onClick}>{props.button}</button>
       </div>
     );
   }
@@ -788,18 +793,21 @@ export default function App() {
             status={dogStatus.amDone ? "Done" : dogOverdue.am ? "OVERDUE" : "Pending"}
             onClick={() => setDogCare((previous) => ({ ...previous, amFedAt: previous.amFedAt ? null : isoNow() }))}
             button="Mark AM Feed"
+            done={dogStatus.amDone}
           />
           <DogAction
             title="PM Feed by 9:00 PM"
             status={dogStatus.pmDone ? "Done" : dogOverdue.pm ? "OVERDUE" : "Pending"}
             onClick={() => setDogCare((previous) => ({ ...previous, pmFedAt: previous.pmFedAt ? null : isoNow() }))}
             button="Mark PM Feed"
+            done={dogStatus.pmDone}
           />
           <DogAction
             title="Chief Allergy Meds AM"
             status={dogStatus.medsDone ? "Done" : dogOverdue.meds ? "OVERDUE" : "Pending"}
             onClick={() => setDogCare((previous) => ({ ...previous, chiefMedsAt: previous.chiefMedsAt ? null : isoNow() }))}
             button="Mark Chief Meds"
+            done={dogStatus.medsDone}
           />
         </div>
       </div>
@@ -882,9 +890,16 @@ export default function App() {
         (kid.bathroomAssigned && kid.bathroomDone ? 1 : 0),
       0
     );
+    const familyCompleted = kidsWithMetrics.reduce((sum, kid) => sum + Math.min(kid.requiredPoints, kid.completedPoints), 0);
+    const familyRequired = kidsWithMetrics.reduce((sum, kid) => sum + kid.requiredPoints, 0);
+    const familyScore = familyRequired > 0 ? Math.round((familyCompleted / familyRequired) * 100) : 100;
 
     return (
       <div className="sidebar-summary">
+        <div className="card sidebar-stat family-score-card">
+          <div className="muted">Family Score</div>
+          <div className="big-number">{familyScore}%</div>
+        </div>
         <div className="card sidebar-stat">
           <div className="muted">Total chores marked</div>
           <div className="big-number">{totalMarked}</div>
@@ -908,13 +923,23 @@ export default function App() {
 
   function KidTile({ kid }: { kid: (typeof kidsWithMetrics)[number] }) {
     return (
-      <div className={`kid-tile ${kid.overduePoints > 0 ? "tile-overdue" : kid.pointsRemaining === 0 ? "tile-complete" : ""}`}>
+      <div
+        className={`kid-tile clickable-kid-tile ${kid.overduePoints > 0 ? "tile-overdue" : kid.pointsRemaining === 0 ? "tile-complete" : ""}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => openKidTile(kid.id)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") openKidTile(kid.id);
+        }}
+      >
         <div className="kid-top">
           <div>
             <div className="kid-name">{kid.name}</div>
             <div className="quote">{quoteForKid(kid.id)}</div>
           </div>
-          <span className="pill">Working</span>
+          <span className={`pill ${kid.overduePoints > 0 ? "pill-danger" : kid.pointsRemaining === 0 ? "pill-success" : ""}`}>
+            {kid.overduePoints > 0 ? "Overdue" : kid.pointsRemaining === 0 ? "Complete" : "Working"}
+          </span>
         </div>
 
         <div>
@@ -934,20 +959,16 @@ export default function App() {
         </div>
 
         <div className="tile-actions">
-          <button className={`button ${kid.dishesLoadDone ? "success" : "danger"}`} onClick={() => toggleDishField(kid.id, "dishesLoadDone")}>
+          <button className={`button ${kid.dishesLoadDone ? "success" : "danger"}`} onClick={(event) => { event.stopPropagation(); toggleDishField(kid.id, "dishesLoadDone"); }}>
             Load Dishes {kid.dishesLoadDone ? "✓" : "✕"}
           </button>
-          <button className={`button ${kid.dishesUnloadDone ? "success" : "danger"}`} onClick={() => toggleDishField(kid.id, "dishesUnloadDone")}>
+          <button className={`button ${kid.dishesUnloadDone ? "success" : "danger"}`} onClick={(event) => { event.stopPropagation(); toggleDishField(kid.id, "dishesUnloadDone"); }}>
             Unload Dishes {kid.dishesUnloadDone ? "✓" : "✕"}
           </button>
-          <button className={`button ${!kid.bathroomAssigned ? "disabled" : kid.bathroomDone ? "success" : "danger"}`} onClick={() => kid.bathroomAssigned && toggleDishField(kid.id, "bathroomDone")}>
+          <button className={`button ${!kid.bathroomAssigned ? "disabled" : kid.bathroomDone ? "success" : "danger"}`} onClick={(event) => { event.stopPropagation(); kid.bathroomAssigned && toggleDishField(kid.id, "bathroomDone"); }}>
             {kid.bathroomAssigned ? `Bathroom ${kid.bathroomDone ? "✓" : "✕"}` : "Bathroom N/A"}
           </button>
         </div>
-
-        <button className="button secondary track" onClick={() => { setSelectedKidId(kid.id); setScreen("kid"); }}>
-          Track {kid.name}
-        </button>
       </div>
     );
   }
