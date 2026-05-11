@@ -1312,3 +1312,156 @@ button,input,select{
     justify-content:space-between;
   }
 }
+
+/* v5.11.26b dashboard update
+   Dog Care removed, weather expanded, no animations/transforms. */
+
+*{
+  animation:none !important;
+  transition:none !important;
+}
+
+.button:active{
+  transform:none !important;
+}
+
+.family-score-card{
+  border-color:#334155 !important;
+  box-shadow:0 6px 18px rgba(0,0,0,.25) !important;
+}
+
+.sidebar-summary{
+  align-items:stretch;
+}
+
+.sidebar-stat{
+  min-height:54px !important;
+  padding:6px !important;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.sidebar-stat .big-number,
+.big-number{
+  line-height:1 !important;
+}
+
+.quick-add-prompt{
+  background:#111827;
+  border:1px solid #facc15;
+  border-radius:10px;
+  padding:7px;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.quick-add-actions{
+  display:flex;
+  gap:5px;
+  flex-shrink:0;
+}
+
+.expanded-weather{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.forecast-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+}
+
+.forecast-day{
+  background:#020617;
+  border:1px solid #334155;
+  border-radius:10px;
+  padding:6px;
+  min-width:0;
+}
+
+.forecast-label{
+  font-size:12px;
+  font-weight:900;
+}
+
+.forecast-temp{
+  font-size:14px;
+  font-weight:900;
+}
+
+.forecast-condition,
+.forecast-rain{
+  font-size:10px;
+  color:#cbd5e1;
+  line-height:1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.quote{
+  display:block;
+  margin-top:2px;
+  margin-bottom:6px;
+  line-height:1.25 !important;
+  opacity:.86;
+}
+
+@media screen and (orientation:landscape){
+
+  .main-area{
+    grid-template-rows:1fr auto !important;
+  }
+
+  .kids-grid{
+    min-height:0 !important;
+  }
+
+  .expanded-weather{
+    min-height:98px !important;
+  }
+
+  .weather-main{
+    min-height:30px !important;
+  }
+
+  .sidebar-summary{
+    grid-template-columns:1fr 1fr 1fr !important;
+  }
+
+  .sidebar-stat{
+    min-height:50px !important;
+  }
+}
+
+@media screen and (max-aspect-ratio:3/4){
+  .forecast-grid{
+    grid-template-columns:repeat(5,1fr);
+    gap:3px;
+  }
+
+  .forecast-day{
+    padding:4px;
+  }
+
+  .forecast-label{
+    font-size:9px;
+  }
+
+  .forecast-temp{
+    font-size:10px;
+  }
+
+  .forecast-condition,
+  .forecast-rain{
+    font-size:7px;
+  }
+}

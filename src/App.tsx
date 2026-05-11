@@ -40,6 +40,15 @@ type GroceryItem = {
   addedAt: string;
 };
 
+type ForecastDay = {
+  date: string;
+  label: string;
+  high: string;
+  low: string;
+  condition: string;
+  rainChance: string;
+};
+
 type CompletionEvent = {
   id: number;
   kidId: number;
@@ -60,7 +69,7 @@ type DogCare = {
 type AppState = {
   kids: Kid[];
   library: ChoreDef[];
-  dogCare: DogCare;
+  dogCare?: DogCare;
   groceryItems: GroceryItem[];
   groceryQuickAdds: string[];
   completionEvents: CompletionEvent[];
@@ -68,7 +77,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.6.26a";
+const VERSION = "v5.11.26b";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -174,7 +183,6 @@ function defaultState(): AppState {
   return {
     library,
     parentPin: DEFAULT_PIN,
-    dogCare: { amFedAt: null, pmFedAt: null, chiefMedsAt: null },
     groceryItems: [],
     groceryQuickAdds: DEFAULT_GROCERY_QUICK_ADDS,
     completionEvents: [],
@@ -207,7 +215,6 @@ function loadState(): AppState {
     return {
       library,
       parentPin: parsed.parentPin ?? DEFAULT_PIN,
-      dogCare: parsed.dogCare ?? fallback.dogCare,
       groceryItems: Array.isArray(parsed.groceryItems) ? parsed.groceryItems : [],
       groceryQuickAdds: Array.isArray(parsed.groceryQuickAdds) ? parsed.groceryQuickAdds : DEFAULT_GROCERY_QUICK_ADDS,
       completionEvents: Array.isArray(parsed.completionEvents) ? parsed.completionEvents : [],
@@ -246,11 +253,11 @@ export default function App() {
   const [selectedKidId, setSelectedKidId] = useState<number | null>(null);
   const [library, setLibrary] = useState<ChoreDef[]>(initial.library);
   const [kids, setKids] = useState<Kid[]>(initial.kids);
-  const [dogCare, setDogCare] = useState<DogCare>(initial.dogCare);
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>(initial.groceryItems);
   const [groceryInput, setGroceryInput] = useState("");
   const [groceryQuickAdds, setGroceryQuickAdds] = useState<string[]>(initial.groceryQuickAdds);
   const [newQuickAdd, setNewQuickAdd] = useState("");
+  const [pendingQuickAdd, setPendingQuickAdd] = useState<string | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [completionEvents, setCompletionEvents] = useState<CompletionEvent[]>(initial.completionEvents);
   const [parentPin, setParentPin] = useState(initial.parentPin);
@@ -271,6 +278,7 @@ export default function App() {
   const [clock, setClock] = useState(new Date());
   const [refreshTick, setRefreshTick] = useState(0);
   const [weatherText, setWeatherText] = useState("Loading weather...");
+  const [forecastDays, setForecastDays] = useState<ForecastDay[]>([]);
   const [weatherUpdatedAt, setWeatherUpdatedAt] = useState("");
   const [lastWeekKey, setLastWeekKey] = useState(initial.lastWeekKey);
 
@@ -292,6 +300,21 @@ export default function App() {
         const response = await fetch("https://wttr.in/Overland%20Park,Kansas?format=j1");
         const data = await response.json();
         const current = data?.current_condition?.[0];
+        const forecast = Array.isArray(data?.weather)
+          ? data.weather.slice(0, 5).map((day: any) => {
+              const date = new Date(`${day.date}T12:00:00`);
+              const hourly = Array.isArray(day.hourly) ? day.hourly : [];
+              const noon = hourly[Math.floor(hourly.length / 2)] ?? hourly[0] ?? {};
+              return {
+                date: String(day.date ?? ""),
+                label: date.toLocaleDateString([], { weekday: "short" }),
+                high: String(day.maxtempF ?? "--"),
+                low: String(day.mintempF ?? "--"),
+                condition: String(noon?.weatherDesc?.[0]?.value ?? day?.weatherDesc?.[0]?.value ?? "Forecast"),
+                rainChance: String(noon?.chanceofrain ?? "--"),
+              };
+            })
+          : [];
 
         if (!cancelled) {
           const desc = current?.weatherDesc?.[0]?.value ?? "Weather unavailable";
@@ -300,6 +323,7 @@ export default function App() {
           const humidity = current?.humidity ?? "--";
           const wind = current?.windspeedMiles ?? "--";
           setWeatherText(`${desc} · ${temp}°F · Feels ${feels}°F · Humidity ${humidity}% · Wind ${wind} mph`);
+          setForecastDays(forecast);
           setWeatherUpdatedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
         }
       } catch {
@@ -317,7 +341,6 @@ export default function App() {
     const state: AppState = {
       kids,
       library,
-      dogCare,
       groceryItems,
       groceryQuickAdds,
       completionEvents,
@@ -325,24 +348,12 @@ export default function App() {
       lastWeekKey,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [kids, library, dogCare, groceryItems, groceryQuickAdds, completionEvents, parentPin, lastWeekKey]);
+  }, [kids, library, groceryItems, groceryQuickAdds, completionEvents, parentPin, lastWeekKey]);
 
   const weekStart = getWeekStart(clock);
   const weekEnd = getWeekEnd(clock);
   const countdownText = formatCountdown(weekEnd.getTime() - clock.getTime());
   const todayKey = clock.toDateString();
-
-  const dogStatus = {
-    amDone: dogCare.amFedAt ? new Date(dogCare.amFedAt).toDateString() === todayKey : false,
-    pmDone: dogCare.pmFedAt ? new Date(dogCare.pmFedAt).toDateString() === todayKey : false,
-    medsDone: dogCare.chiefMedsAt ? new Date(dogCare.chiefMedsAt).toDateString() === todayKey : false,
-  };
-
-  const dogOverdue = {
-    am: clock.getHours() >= 8 && !dogStatus.amDone,
-    pm: clock.getHours() >= 21 && !dogStatus.pmDone,
-    meds: clock.getHours() >= 8 && !dogStatus.medsDone,
-  };
 
   useEffect(() => {
     const currentWeekKey = weekStart.toISOString();
@@ -375,7 +386,6 @@ export default function App() {
       });
     });
 
-    setDogCare({ amFedAt: null, pmFedAt: null, chiefMedsAt: null });
     setLastWeekKey(currentWeekKey);
   }, [weekStart, lastWeekKey, library]);
 
@@ -606,9 +616,32 @@ export default function App() {
   function addGroceryItem() {
     const name = groceryInput.trim();
     if (!name) return;
+
+    const knownQuickAdd = groceryQuickAdds.some((item) => item.toLowerCase() === name.toLowerCase());
+    if (!knownQuickAdd) setPendingQuickAdd(name);
+
     setGroceryItems((previous) => [...previous, { id: Date.now(), name, addedAt: stamp() }]);
     setGroceryInput("");
     setSelectedSuggestion(0);
+  }
+
+  function acceptPendingQuickAdd() {
+    if (!pendingQuickAdd) return;
+    const value = pendingQuickAdd.trim();
+    if (!value) {
+      setPendingQuickAdd(null);
+      return;
+    }
+
+    setGroceryQuickAdds((previous) => {
+      if (previous.some((item) => item.toLowerCase() === value.toLowerCase())) return previous;
+      return [...previous, value].sort((a, b) => a.localeCompare(b));
+    });
+    setPendingQuickAdd(null);
+  }
+
+  function declinePendingQuickAdd() {
+    setPendingQuickAdd(null);
   }
 
   function selectGrocerySuggestion(item: string) {
@@ -724,7 +757,7 @@ export default function App() {
   }
 
   function exportBackup() {
-    const state: AppState = { kids, library, dogCare, groceryItems, groceryQuickAdds, completionEvents, parentPin, lastWeekKey };
+    const state: AppState = { kids, library, groceryItems, groceryQuickAdds, completionEvents, parentPin, lastWeekKey };
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -742,7 +775,6 @@ export default function App() {
       const parsed = JSON.parse(await file.text()) as Partial<AppState>;
       setKids(parsed.kids ?? kids);
       setLibrary(parsed.library ?? library);
-      setDogCare(parsed.dogCare ?? dogCare);
       setGroceryItems(parsed.groceryItems ?? []);
       setGroceryQuickAdds(parsed.groceryQuickAdds ?? DEFAULT_GROCERY_QUICK_ADDS);
       setCompletionEvents(parsed.completionEvents ?? []);
@@ -768,47 +800,6 @@ export default function App() {
         <div className="card header-card">
           <div className="muted">Sunday 11:59 PM</div>
           <div className="header-value">{countdownText}</div>
-        </div>
-      </div>
-    );
-  }
-
-  function DogAction(props: { title: string; status: string; onClick: () => void; button: string; done?: boolean }) {
-    return (
-      <div className="mini-card">
-        <div className="mini-title">{props.title}</div>
-        <div className="mini-status">{props.status}</div>
-        <button className={`button full ${props.done ? "success" : ""}`} onClick={props.onClick}>{props.button}</button>
-      </div>
-    );
-  }
-
-  function DogCard() {
-    return (
-      <div className={`card ${dogOverdue.am || dogOverdue.pm || dogOverdue.meds ? "danger-card" : ""}`}>
-        <div className="section-title">Dog Care</div>
-        <div className="dog-grid">
-          <DogAction
-            title="AM Feed by 8:00 AM"
-            status={dogStatus.amDone ? "Done" : dogOverdue.am ? "OVERDUE" : "Pending"}
-            onClick={() => setDogCare((previous) => ({ ...previous, amFedAt: previous.amFedAt ? null : isoNow() }))}
-            button="Mark AM Feed"
-            done={dogStatus.amDone}
-          />
-          <DogAction
-            title="PM Feed by 9:00 PM"
-            status={dogStatus.pmDone ? "Done" : dogOverdue.pm ? "OVERDUE" : "Pending"}
-            onClick={() => setDogCare((previous) => ({ ...previous, pmFedAt: previous.pmFedAt ? null : isoNow() }))}
-            button="Mark PM Feed"
-            done={dogStatus.pmDone}
-          />
-          <DogAction
-            title="Chief Allergy Meds AM"
-            status={dogStatus.medsDone ? "Done" : dogOverdue.meds ? "OVERDUE" : "Pending"}
-            onClick={() => setDogCare((previous) => ({ ...previous, chiefMedsAt: previous.chiefMedsAt ? null : isoNow() }))}
-            button="Mark Chief Meds"
-            done={dogStatus.medsDone}
-          />
         </div>
       </div>
     );
@@ -861,6 +852,16 @@ export default function App() {
           ))}
         </div>
 
+        {pendingQuickAdd && (
+          <div className="quick-add-prompt">
+            <span>Add “{pendingQuickAdd}” to Quick Add?</span>
+            <div className="quick-add-actions">
+              <button className="button success small" onClick={acceptPendingQuickAdd}>Yes</button>
+              <button className="button secondary small" onClick={declinePendingQuickAdd}>No</button>
+            </div>
+          </div>
+        )}
+
         <div className="grocery-list">
           {groceryItems.length === 0 && <div className="muted">No grocery items yet.</div>}
           {groceryItems.map((item) => (
@@ -890,8 +891,8 @@ export default function App() {
         (kid.bathroomAssigned && kid.bathroomDone ? 1 : 0),
       0
     );
-    const familyCompleted = kidsWithMetrics.reduce((sum, kid) => sum + Math.min(kid.requiredPoints, kid.completedPoints), 0);
-    const familyRequired = kidsWithMetrics.reduce((sum, kid) => sum + kid.requiredPoints, 0);
+    const familyCompleted = kidsWithMetrics.reduce((sum, kid) => sum + Math.min(BASE_POINTS, kid.baseCompleted), 0);
+    const familyRequired = kidsWithMetrics.length * BASE_POINTS;
     const familyScore = familyRequired > 0 ? Math.round((familyCompleted / familyRequired) * 100) : 100;
 
     return (
@@ -975,10 +976,22 @@ export default function App() {
 
   function WeatherCard() {
     return (
-      <div className="card weather">
+      <div className="card weather expanded-weather">
         <div className="section-title">Weather · Overland Park / 66213</div>
         <div className="weather-main">{weatherText}</div>
-        <div className="muted tiny">Updates with quotes every 15 minutes{weatherUpdatedAt ? ` · Last update ${weatherUpdatedAt}` : ""}</div>
+        {forecastDays.length > 0 && (
+          <div className="forecast-grid">
+            {forecastDays.map((day) => (
+              <div className="forecast-day" key={day.date}>
+                <div className="forecast-label">{day.label}</div>
+                <div className="forecast-temp">{day.high}°/{day.low}°</div>
+                <div className="forecast-condition">{day.condition}</div>
+                <div className="forecast-rain">{day.rainChance}% rain</div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="muted tiny">Updates every 15 minutes{weatherUpdatedAt ? ` · Last update ${weatherUpdatedAt}` : ""}</div>
       </div>
     );
   }
@@ -1022,7 +1035,6 @@ export default function App() {
             </div>
 
             <div className="main-area">
-              {DogCard()}
               <div className="kids-grid">
                 {kidsWithMetrics.map((kid) => <KidTile kid={kid} key={kid.id} />)}
               </div>
