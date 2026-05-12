@@ -77,7 +77,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.11.26b";
+const VERSION = "v5.11.26d";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -176,6 +176,18 @@ function stamp() {
 
 function isoNow() {
   return new Date().toISOString();
+}
+
+function weatherCodeLabel(code: number) {
+  if (code === 0) return "Sunny";
+  if ([1, 2].includes(code)) return "Partly cloudy";
+  if (code === 3) return "Cloudy";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Storms";
+  return "Forecast";
 }
 
 function defaultState(): AppState {
@@ -297,31 +309,32 @@ export default function App() {
 
     async function loadWeather() {
       try {
-        const response = await fetch("https://wttr.in/Overland%20Park,Kansas?format=j1");
+        const response = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=38.9822&longitude=-94.6708&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FChicago&forecast_days=7"
+        );
         const data = await response.json();
-        const current = data?.current_condition?.[0];
-        const forecast = Array.isArray(data?.weather)
-          ? data.weather.slice(0, 5).map((day: any) => {
-              const date = new Date(`${day.date}T12:00:00`);
-              const hourly = Array.isArray(day.hourly) ? day.hourly : [];
-              const noon = hourly[Math.floor(hourly.length / 2)] ?? hourly[0] ?? {};
-              return {
-                date: String(day.date ?? ""),
-                label: date.toLocaleDateString([], { weekday: "short" }),
-                high: String(day.maxtempF ?? "--"),
-                low: String(day.mintempF ?? "--"),
-                condition: String(noon?.weatherDesc?.[0]?.value ?? day?.weatherDesc?.[0]?.value ?? "Forecast"),
-                rainChance: String(noon?.chanceofrain ?? "--"),
-              };
-            })
-          : [];
+        const current = data?.current ?? {};
+        const daily = data?.daily ?? {};
+        const days = Array.isArray(daily?.time) ? daily.time : [];
+
+        const forecast = days.slice(0, 7).map((dateValue: string, index: number) => {
+          const date = new Date(`${dateValue}T12:00:00`);
+          return {
+            date: dateValue,
+            label: date.toLocaleDateString([], { weekday: "short" }),
+            high: String(Math.round(Number(daily?.temperature_2m_max?.[index] ?? 0)) || "--"),
+            low: String(Math.round(Number(daily?.temperature_2m_min?.[index] ?? 0)) || "--"),
+            condition: weatherCodeLabel(Number(daily?.weather_code?.[index] ?? -1)),
+            rainChance: String(daily?.precipitation_probability_max?.[index] ?? "--"),
+          };
+        });
 
         if (!cancelled) {
-          const desc = current?.weatherDesc?.[0]?.value ?? "Weather unavailable";
-          const temp = current?.temp_F ?? "--";
-          const feels = current?.FeelsLikeF ?? "--";
-          const humidity = current?.humidity ?? "--";
-          const wind = current?.windspeedMiles ?? "--";
+          const desc = weatherCodeLabel(Number(current?.weather_code ?? -1));
+          const temp = Math.round(Number(current?.temperature_2m ?? 0)) || "--";
+          const feels = Math.round(Number(current?.apparent_temperature ?? 0)) || "--";
+          const humidity = current?.relative_humidity_2m ?? "--";
+          const wind = Math.round(Number(current?.wind_speed_10m ?? 0)) || "--";
           setWeatherText(`${desc} · ${temp}°F · Feels ${feels}°F · Humidity ${humidity}% · Wind ${wind} mph`);
           setForecastDays(forecast);
           setWeatherUpdatedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
@@ -398,16 +411,22 @@ export default function App() {
             ? 0
             : kid.dishPenaltyPoints;
 
-        // Completed chore points pay down carryover overdue FIRST.
-        // Only points beyond carryover count toward this week's base progress.
-        const required = BASE_POINTS + kid.carryoverPoints + dishPenaltyRemaining;
+        // Overdue is ONE debt bucket: carryover + dish penalty.
+        // Any completed chore points pay down that entire bucket first.
+        const overdueDebt = kid.carryoverPoints + dishPenaltyRemaining;
+        const overduePaid = Math.min(completed, overdueDebt);
+        const overduePoints = Math.max(0, overdueDebt - overduePaid);
+
+        // Weekly/base progress only starts after the overdue bucket is cleared.
+        const baseCompleted = Math.max(0, completed - overdueDebt);
+        const baseCompletedCapped = Math.min(BASE_POINTS, baseCompleted);
+
+        const required = BASE_POINTS + overdueDebt;
+        const pointsRemaining = Math.max(0, required - completed);
+        const storedOverdue = overdueDebt;
         const carryoverPaid = Math.min(completed, kid.carryoverPoints);
         const carryoverRemaining = Math.max(0, kid.carryoverPoints - carryoverPaid);
-        const baseCompleted = Math.max(0, completed - kid.carryoverPoints);
-        const pointsRemaining = Math.max(0, required - completed);
-        const overduePoints = carryoverRemaining + dishPenaltyRemaining;
-        const storedOverdue = kid.carryoverPoints + dishPenaltyRemaining;
-        const progress = Math.min(100, Math.round((Math.min(BASE_POINTS, baseCompleted) / BASE_POINTS) * 100));
+        const progress = Math.min(100, Math.round((baseCompletedCapped / BASE_POINTS) * 100));
         const completionRate = kid.weeksTracked > 0 ? Math.round((kid.weeksSuccessful / kid.weeksTracked) * 100) : 0;
 
         return {
@@ -417,9 +436,12 @@ export default function App() {
           pointsRemaining,
           overduePoints,
           storedOverdue,
+          overdueDebt,
+          overduePaid,
           carryoverPaid,
           carryoverRemaining,
           baseCompleted,
+          baseCompletedCapped,
           progress,
           completionRate,
         };
@@ -891,9 +913,15 @@ export default function App() {
         (kid.bathroomAssigned && kid.bathroomDone ? 1 : 0),
       0
     );
-    const familyCompleted = kidsWithMetrics.reduce((sum, kid) => sum + Math.min(BASE_POINTS, kid.baseCompleted), 0);
-    const familyRequired = kidsWithMetrics.length * BASE_POINTS;
-    const familyScore = familyRequired > 0 ? Math.round((familyCompleted / familyRequired) * 100) : 100;
+
+    // Family Score is the current week's base progress only.
+    // It ignores overdue/carryover debt and dish penalties.
+    const weeklyBaseCompleted = kidsWithMetrics.reduce(
+      (sum, kid) => sum + Math.max(0, Math.min(BASE_POINTS, kid.baseCompleted)),
+      0
+    );
+    const weeklyBaseRequired = kidsWithMetrics.length * BASE_POINTS;
+    const familyScore = weeklyBaseRequired > 0 ? Math.round((weeklyBaseCompleted / weeklyBaseRequired) * 100) : 100;
 
     return (
       <div className="sidebar-summary">

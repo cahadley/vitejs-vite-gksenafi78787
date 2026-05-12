@@ -1465,3 +1465,34 @@ button,input,select{
     font-size:7px;
   }
 }
+
+/* v5.11.26c family score + 7-day weather refinement */
+.forecast-grid{
+  grid-template-columns:repeat(7, minmax(0, 1fr)) !important;
+  gap:4px !important;
+}
+
+.forecast-day{
+  padding:5px !important;
+  min-width:0 !important;
+}
+
+.forecast-label{
+  font-size:11px !important;
+}
+
+.forecast-temp{
+  font-size:13px !important;
+  line-height:1.1 !important;
+}
+
+.forecast-condition,
+.forecast-rain{
+  font-size:9px !important;
+}
+
+@media screen and (orientation:landscape){
+  .expanded-weather{
+    min-height:104px !important;
+  }
+}
