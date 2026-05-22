@@ -77,14 +77,16 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.11.26d";
+const VERSION = "v5.11.26e";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
 const DISH_PENALTY = 3;
 const PARENT_DISH_CHORE_ID = -201;
 const PARENT_DISH_UNDO_MS = 60 * 1000;
-const KID_SCREEN_TIMEOUT_MS = 60 * 1000;
+const KID_SCREEN_TIMEOUT_MS = 2 * 60 * 1000;
+const PARENT_UNLOCK_TIMEOUT_MS = 2 * 60 * 1000;
+const DOUBLE_UNLOAD_WINDOW_MS = 2 * 60 * 60 * 1000;
 const DEFAULT_PIN = "5422";
 const KID_NAMES = ["Morgan", "Marilyn", "James", "Calvin", "Anastasia", "Evie"];
 
@@ -156,6 +158,12 @@ function formatCountdown(ms: number) {
 
 function makeChores(library: ChoreDef[]): Chore[] {
   return sortByName(library).map((chore) => ({ ...chore, doneCount: 0 }));
+}
+
+function dishPenaltyForStatus(loadDone: boolean, unloadDone: boolean) {
+  if (loadDone && unloadDone) return 0;
+  if (loadDone || unloadDone) return 2;
+  return DISH_PENALTY;
 }
 
 function completedPoints(kid: Kid) {
@@ -380,7 +388,7 @@ export default function App() {
         const done = completedPoints(kid);
         const need = requiredPoints(kid);
         const carryover = Math.max(0, need - done);
-        const penalty = kid.dishesLoadDone && kid.dishesUnloadDone ? 0 : DISH_PENALTY;
+        const penalty = dishPenaltyForStatus(kid.dishesLoadDone, kid.dishesUnloadDone);
         const success = carryover === 0 && penalty === 0;
 
         return {
@@ -406,10 +414,7 @@ export default function App() {
     () =>
       kids.map((kid) => {
         const completed = completedPoints(kid);
-        const dishPenaltyRemaining =
-          kid.dishesLoadDone && kid.dishesUnloadDone
-            ? 0
-            : kid.dishPenaltyPoints;
+        const dishPenaltyRemaining = dishPenaltyForStatus(kid.dishesLoadDone, kid.dishesUnloadDone);
 
         // Overdue is ONE debt bucket: carryover + dish penalty.
         // Any completed chore points pay down that entire bucket first.
@@ -450,16 +455,6 @@ export default function App() {
   );
 
   const selectedKid = kidsWithMetrics.find((kid) => kid.id === selectedKidId) ?? null;
-
-  const recentParentDishLoad = useMemo(() => {
-    const latestParentLoad = [...completionEvents]
-      .reverse()
-      .find((event) => event.choreId === PARENT_DISH_CHORE_ID);
-
-    if (!latestParentLoad) return null;
-    const age = Date.now() - new Date(latestParentLoad.at).getTime();
-    return age <= PARENT_DISH_UNDO_MS ? latestParentLoad : null;
-  }, [completionEvents, clock]);
 
   const grocerySuggestions = useMemo(() => {
     const q = groceryInput.trim().toLowerCase();
@@ -600,8 +595,33 @@ export default function App() {
     });
   }
 
+  function latestDishEventAgeMs(kidId: number, choreId: number) {
+    const latest = [...completionEvents]
+      .reverse()
+      .find((event) => event.kidId === kidId && event.choreId === choreId && event.kind === "dishes");
+    if (!latest) return null;
+    return Date.now() - new Date(latest.at).getTime();
+  }
+
   function toggleDishField(kidId: number, field: "dishesLoadDone" | "dishesUnloadDone" | "bathroomDone") {
     updateKid(kidId, (kid) => {
+      if (field === "dishesUnloadDone" && kid.dishesUnloadDone && !kid.dishesLoadDone) {
+        const age = latestDishEventAgeMs(kid.id, -102);
+        if (age !== null && age >= DOUBLE_UNLOAD_WINDOW_MS) {
+          logCompletion(kid, { id: -101, name: "load dishes via second unload", points: 0 }, "dishes");
+          return {
+            ...kid,
+            dishesLoadDone: true,
+            dishesUnloadDone: true,
+          };
+        }
+
+        const remainingMs = age === null ? DOUBLE_UNLOAD_WINDOW_MS : Math.max(0, DOUBLE_UNLOAD_WINDOW_MS - age);
+        const remainingMinutes = Math.ceil(remainingMs / 60000);
+        setMessage(`Second unload can count as both after ${remainingMinutes} more minute${remainingMinutes === 1 ? "" : "s"}.`);
+        return kid;
+      }
+
       const nextValue = !kid[field];
       const choreId = field === "dishesLoadDone" ? -101 : field === "dishesUnloadDone" ? -102 : -103;
       const choreName = field === "dishesLoadDone" ? "load dishes" : field === "dishesUnloadDone" ? "unload dishes" : "kids bathroom";
@@ -612,27 +632,6 @@ export default function App() {
 
       return { ...kid, [field]: nextValue };
     });
-  }
-
-  function toggleParentDishLoad() {
-    if (recentParentDishLoad) {
-      setCompletionEvents((previous) => previous.filter((event) => event.id !== recentParentDishLoad.id));
-      return;
-    }
-
-    setCompletionEvents((previous) => [
-      ...previous,
-      {
-        id: Date.now() + Math.random(),
-        kidId: 0,
-        kidName: "Parents",
-        choreId: PARENT_DISH_CHORE_ID,
-        choreName: "load dishes",
-        points: 0,
-        at: isoNow(),
-        kind: "dishes",
-      },
-    ]);
   }
 
   function addGroceryItem() {
@@ -902,9 +901,6 @@ export default function App() {
 
 
   function SummaryPanel() {
-    const kidLoadsDone = kids.filter((kid) => kid.dishesLoadDone).length;
-    const parentLoadsDone = completionEvents.filter((event) => event.choreId === PARENT_DISH_CHORE_ID).length;
-    const loadsDone = kidLoadsDone + parentLoadsDone;
     const totalMarked = kids.reduce(
       (sum, kid) =>
         sum +
@@ -933,10 +929,6 @@ export default function App() {
           <div className="muted">Total chores marked</div>
           <div className="big-number">{totalMarked}</div>
         </div>
-        <div className="card sidebar-stat">
-          <div className="muted">Loads of dishes done</div>
-          <div className="big-number">{loadsDone}</div>
-        </div>
       </div>
     );
   }
@@ -953,7 +945,7 @@ export default function App() {
   function KidTile({ kid }: { kid: (typeof kidsWithMetrics)[number] }) {
     return (
       <div
-        className={`kid-tile clickable-kid-tile ${kid.overduePoints > 0 ? "tile-overdue" : kid.pointsRemaining === 0 ? "tile-complete" : ""}`}
+        className={`kid-tile clickable-kid-tile ${kid.overduePoints > 0 ? "tile-overdue" : kid.pointsRemaining === 0 && kid.dishesLoadDone && kid.dishesUnloadDone ? "tile-complete" : ""}`}
         role="button"
         tabIndex={0}
         onClick={() => openKidTile(kid.id)}
@@ -966,8 +958,8 @@ export default function App() {
             <div className="kid-name">{kid.name}</div>
             <div className="quote">{quoteForKid(kid.id)}</div>
           </div>
-          <span className={`pill ${kid.overduePoints > 0 ? "pill-danger" : kid.pointsRemaining === 0 ? "pill-success" : ""}`}>
-            {kid.overduePoints > 0 ? "Overdue" : kid.pointsRemaining === 0 ? "Complete" : "Working"}
+          <span className={`pill ${kid.overduePoints > 0 ? "pill-danger" : kid.pointsRemaining === 0 && kid.dishesLoadDone && kid.dishesUnloadDone ? "pill-success" : kid.pointsRemaining === 0 ? "pill-warning" : ""}`}>
+            {kid.overduePoints > 0 ? "Overdue" : kid.pointsRemaining === 0 && kid.dishesLoadDone && kid.dishesUnloadDone ? "Complete" : kid.pointsRemaining === 0 ? "Dishes Needed" : "Working"}
           </span>
         </div>
 
@@ -998,6 +990,13 @@ export default function App() {
             {kid.bathroomAssigned ? `Bathroom ${kid.bathroomDone ? "✓" : "✕"}` : "Bathroom N/A"}
           </button>
         </div>
+
+        {kid.dishesUnloadDone && kid.dishesLoadDone && completionEvents.some((event) => event.kidId === kid.id && event.choreName === "load dishes via second unload") && (
+          <div className="dish-note">Unload counted as both</div>
+        )}
+        {(kid.dishesLoadDone !== kid.dishesUnloadDone) && (
+          <div className="dish-note warning">Half dishes done · 2 point penalty if week ends now</div>
+        )}
       </div>
     );
   }
@@ -1035,7 +1034,20 @@ export default function App() {
     }, KID_SCREEN_TIMEOUT_MS);
 
     return () => window.clearTimeout(timer);
-  }, [screen, selectedKidId, completionEvents, clock]);
+  }, [screen, selectedKidId, completionEvents]);
+
+  // Parent console auto-lock after inactivity
+  useEffect(() => {
+    if (screen !== "parent" || !parentUnlocked) return;
+
+    const lockTimer = window.setTimeout(() => {
+      setParentUnlocked(false);
+      setEnteredPin("");
+      setScreen("home");
+    }, PARENT_UNLOCK_TIMEOUT_MS);
+
+    return () => window.clearTimeout(lockTimer);
+  }, [screen, parentUnlocked, clock, completionEvents, kids, groceryItems]);
 
   function HomeScreen() {
     return (
@@ -1048,12 +1060,7 @@ export default function App() {
               <div className="app-title">🏠 Hadtieri House</div>
               <div className="app-version">{VERSION}</div>
             </div>
-            <div className="home-actions">
-              <button className={`button ${recentParentDishLoad ? "danger" : ""}`} onClick={toggleParentDishLoad}>
-                {recentParentDishLoad ? "Undo Parent Dishes" : "Parent Dishes +1"}
-              </button>
-              <button className="button" onClick={() => setScreen("parent")}>Parent Console</button>
-            </div>
+            <button className="button" onClick={() => setScreen("parent")}>Parent Console</button>
           </div>
 
           <div className="dashboard">

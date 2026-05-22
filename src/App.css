@@ -1496,3 +1496,33 @@ button,input,select{
     min-height:104px !important;
   }
 }
+
+/* v5.11.26e timeout + dish fairness update */
+
+.pill-warning{
+  background:#ca8a04 !important;
+  color:#111827 !important;
+}
+
+.dish-note{
+  background:#064e3b;
+  border:1px solid #22c55e;
+  border-radius:8px;
+  color:#dcfce7;
+  font-size:10px;
+  font-weight:900;
+  padding:3px 6px;
+  text-align:center;
+}
+
+.dish-note.warning{
+  background:#713f12;
+  border-color:#facc15;
+  color:#fde68a;
+}
+
+@media screen and (orientation:landscape){
+  .sidebar-summary{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
