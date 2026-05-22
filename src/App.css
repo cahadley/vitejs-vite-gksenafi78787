@@ -1527,4 +1527,4 @@ button,input,select{
   }
 }
 
-/* v5.11.26f hotfix: current-week missing dishes are future penalty warnings, not live overdue. */
+/* v5.11.26g hotfix verification: live overdue excludes current-week dish penalty. */

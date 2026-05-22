@@ -77,7 +77,7 @@ type AppState = {
   lastWeekKey: string;
 };
 
-const VERSION = "v5.11.26e";
+const VERSION = "v5.11.26g";
 const STORAGE_KEY = "hadtieri_house_v21_clean";
 const BASE_POINTS = 5;
 const BATHROOM_POINTS = 2;
@@ -414,23 +414,22 @@ export default function App() {
     () =>
       kids.map((kid) => {
         const completed = completedPoints(kid);
-        const dishPenaltyRemaining = dishPenaltyForStatus(kid.dishesLoadDone, kid.dishesUnloadDone);
 
-        // Overdue is ONE debt bucket: carryover + dish penalty.
-        // Any completed chore points pay down that entire bucket first.
-        const overdueDebt = kid.carryoverPoints + dishPenaltyRemaining;
+        // LIVE overdue is only existing carryover overdue.
+        // Current-week missing dishes are only a future week-end penalty warning.
+        const potentialDishPenalty = dishPenaltyForStatus(kid.dishesLoadDone, kid.dishesUnloadDone);
+        const overdueDebt = kid.carryoverPoints;
         const overduePaid = Math.min(completed, overdueDebt);
         const overduePoints = Math.max(0, overdueDebt - overduePaid);
 
-        // Weekly/base progress only starts after the overdue bucket is cleared.
         const baseCompleted = Math.max(0, completed - overdueDebt);
         const baseCompletedCapped = Math.min(BASE_POINTS, baseCompleted);
 
         const required = BASE_POINTS + overdueDebt;
         const pointsRemaining = Math.max(0, required - completed);
         const storedOverdue = overdueDebt;
-        const carryoverPaid = Math.min(completed, kid.carryoverPoints);
-        const carryoverRemaining = Math.max(0, kid.carryoverPoints - carryoverPaid);
+        const carryoverPaid = overduePaid;
+        const carryoverRemaining = overduePoints;
         const progress = Math.min(100, Math.round((baseCompletedCapped / BASE_POINTS) * 100));
         const completionRate = kid.weeksTracked > 0 ? Math.round((kid.weeksSuccessful / kid.weeksTracked) * 100) : 0;
 
@@ -443,6 +442,7 @@ export default function App() {
           storedOverdue,
           overdueDebt,
           overduePaid,
+          potentialDishPenalty,
           carryoverPaid,
           carryoverRemaining,
           baseCompleted,
@@ -995,7 +995,7 @@ export default function App() {
           <div className="dish-note">Unload counted as both</div>
         )}
         {(kid.dishesLoadDone !== kid.dishesUnloadDone) && (
-          <div className="dish-note warning">Half dishes done · 2 point penalty if week ends now</div>
+          <div className="dish-note warning">Half dishes done · 2 point penalty at week end</div>
         )}
       </div>
     );
