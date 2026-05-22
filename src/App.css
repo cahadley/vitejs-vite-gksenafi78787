@@ -1526,3 +1526,5 @@ button,input,select{
     grid-template-columns:1fr 1fr !important;
   }
 }
+
+/* v5.11.26f hotfix: current-week missing dishes are future penalty warnings, not live overdue. */
